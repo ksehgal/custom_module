@@ -1,0 +1,102 @@
+<?php
+
+/**
+ * @file
+ * Allow admin user to add custom information.
+ * Author: Kalyani Sehgal
+ */
+
+ 
+/**
+ * Implements hook_menu()
+ */
+ function custom_info_menu() {
+     $items['page_json/%/%'] = array(
+	  'title' => 'Page Content to JSON',
+	  'page callback' => 'custom_info_page_json',
+	  'page arguments' => array(1, 2),
+	  'access arguments' => array('access content'),
+	  );
+	  
+	  return $items;
+ }
+ 
+/**
+ * Implements hook_form_alter()
+ */
+ function custom_info_form_alter(&$form, &$form_state, $form_id) {
+ 	//Check if form is site information form or not
+ 	if ($form_id == 'system_site_information_settings') {
+ 			
+ 		//Check if site api key is available in database or not
+ 		$siteapikey = variable_get('siteapikey');
+		$key = '';
+		if(isset ($siteapikey)){
+			$key = $siteapikey;
+		}
+		
+ 		//Create Site API Key field.	
+ 		$form['site_api_key'] = array(
+	      '#type' => 'textfield',
+	      '#title' => t('Site API Key'),
+	      '#default_value' => $key,
+	      '#attributes' => array('placeholder' => t('No API Key yet.')),
+		  '#weight' => '-50'
+	    );
+		
+		//Change the label of submit button
+		$form['actions']['submit']['#value'] = t('Update Configuration');
+		
+		//Submit action
+		$form['#submit'][] = 'custom_info_form_submit';
+ 	}
+ 	
+ }
+ 
+ /**
+  * Implements hook_form_submit()
+  */
+ function custom_info_form_submit($form, &$form_state) {
+ 	//Get all the values	
+ 	$values = $form_state['values'];
+    
+	//Set the site api key variable
+    if( !empty($values['site_api_key'])){
+        variable_set('siteapikey', $values['site_api_key']);
+		drupal_set_message(t('Site API Key has been saved.'), 'status');
+    }
+ }
+ 
+ /**
+  * Implements custom_info_page_json
+  */
+  function custom_info_page_json($key, $nid) {
+  	//Set a flag to 0	
+  	$flag = 0;
+	
+	//Check API Key
+  	$siteapikey = variable_get('siteapikey');
+	
+	//Check if API key/node is available and print it in json format
+	if( isset($siteapikey)  && $siteapikey == $key){
+		$node = node_load($nid);
+		if( isset($node)){
+			if($node->type == 'page'){
+				$node_array['title'] = $node->title;
+				$node_array['body'] = $node->body;
+				header("Content-type: application/json");
+				print json_encode($node_array,JSON_PRETTY_PRINT);
+			}else {
+				$flag = 1;
+			}
+		}else {
+			$flag = 1;
+		}
+	}else{
+		$flag = 1;
+	}
+	
+	if($flag != 0){
+		print "Access Denied";
+	}
+  }

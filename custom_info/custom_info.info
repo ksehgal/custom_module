@@ -1,0 +1,7 @@
+name = Custom Information
+description = Allow user to add custom information
+package = Custom
+version = VERSION
+core = 7.x
+
+
